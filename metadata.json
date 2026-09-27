@@ -1,0 +1,6 @@
+{
+  "name": "QuickInvoice Pro - Free Instant Invoice & Receipt Generator",
+  "description": "Create professional PDF invoices and receipts in seconds with no sign-up, zero watermarks, multi-currency support, custom branding, and smart calculations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
