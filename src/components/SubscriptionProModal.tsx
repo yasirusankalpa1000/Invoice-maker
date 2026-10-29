@@ -20,6 +20,7 @@ import { Language } from '../utils/i18n';
 import {
   MonetizationConfig,
   getMonetizationConfig,
+  isUserInSriLanka,
 } from '../utils/monetizationConfig';
 import {
   verifyLicenseKey,
@@ -49,16 +50,7 @@ export const SubscriptionProModal: React.FC<SubscriptionProModalProps> = ({
   const [config, setConfig] = useState<MonetizationConfig>(() =>
     getMonetizationConfig()
   );
-  // Auto-detect Sri Lanka vs Global based on TimeZone, Offset (-330) or Language
-  const isSriLanka = (() => {
-    try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
-      const offset = new Date().getTimezoneOffset(); // -330 for Asia/Colombo
-      return tz.includes('Colombo') || tz.includes('Sri_Lanka') || offset === -330 || lang === 'si';
-    } catch {
-      return lang === 'si';
-    }
-  })();
+  const isSriLanka = isUserInSriLanka(lang);
   const [copiedBank, setCopiedBank] = useState(false);
 
   // License Key Activation States
@@ -66,6 +58,19 @@ export const SubscriptionProModal: React.FC<SubscriptionProModalProps> = ({
   const [licenseError, setLicenseError] = useState<string | null>(null);
   const [licenseSuccess, setLicenseSuccess] = useState(false);
   const [currentLicense, setCurrentLicense] = useState<ActivatedLicense | null>(null);
+
+  useEffect(() => {
+    const handleConfigChange = (e: Event) => {
+      const customEvt = e as CustomEvent<MonetizationConfig>;
+      if (customEvt.detail) {
+        setConfig(customEvt.detail);
+      } else {
+        setConfig(getMonetizationConfig());
+      }
+    };
+    window.addEventListener('quickinvoice_config_updated', handleConfigChange);
+    return () => window.removeEventListener('quickinvoice_config_updated', handleConfigChange);
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -210,50 +215,24 @@ export const SubscriptionProModal: React.FC<SubscriptionProModalProps> = ({
             </div>
           ) : (
             <>
-              {/* Plan Switcher Pills */}
-              <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-slate-950 border border-slate-800">
-                <button
-                  onClick={() => setSelectedPlan('lkr')}
-                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    selectedPlan === 'lkr'
-                      ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span>🇱🇰 Sri Lanka Plan</span>
-                  <span className="text-[10px] opacity-80">(Rs. {config.localPlanPriceLkr}/mo)</span>
-                </button>
-                <button
-                  onClick={() => setSelectedPlan('usd')}
-                  className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    selectedPlan === 'usd'
-                      ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
-                >
-                  <span>🌍 Global Plan</span>
-                  <span className="text-[10px] opacity-80">(${config.globalPlanPriceUsd}/mo)</span>
-                </button>
-              </div>
-
-              {/* Pricing Highlight Card */}
+              {/* Pricing Highlight Card (Clear honest pricing - no confusing per-day badges) */}
               <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900 p-4 text-center space-y-2">
                 <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-bold text-emerald-400 border border-emerald-500/20">
                   <Zap className="h-3.5 w-3.5" />
                   <span>
-                    {selectedPlan === 'lkr'
-                      ? 'දවසකට රුපියල් 16ක් වැනි ඉතාම සුළු මුදලක්'
-                      : 'Less than $0.16 per day'}
+                    {isSriLanka
+                      ? (lang === 'si' ? 'QuickInvoice Pro · මාසික සාමාජිකත්වය' : 'QuickInvoice Pro · Monthly Pass')
+                      : 'QuickInvoice Pro · Global Pass'}
                   </span>
                 </div>
 
                 <div>
                   <div className="text-3xl font-black text-white">
-                    {selectedPlan === 'lkr' ? (
+                    {isSriLanka ? (
                       <>
                         <span className="text-lg font-bold text-emerald-400">Rs. </span>
                         {config.localPlanPriceLkr}
-                        <span className="text-xs font-normal text-slate-400"> / මසකට</span>
+                        <span className="text-xs font-normal text-slate-400">{lang === 'si' ? ' / මසකට' : ' / month'}</span>
                       </>
                     ) : (
                       <>
@@ -265,8 +244,8 @@ export const SubscriptionProModal: React.FC<SubscriptionProModalProps> = ({
                   </div>
                   <p className="text-xs text-slate-400 mt-1">
                     {lang === 'si'
-                      ? 'ඕනෑම වේලාවක අවලංගු කළ හැක · කිසිදු සැඟවුණු ගාස්තුවක් නැත'
-                      : 'Instant unique license key provided via WhatsApp upon payment'}
+                      ? 'කිසිදු සැඟවුණු ගාස්තුවක් නැත · මුදල් ගෙවූ පසු WhatsApp මඟින් ක්ෂණික Pro Key එක ලැබේ'
+                      : 'Zero hidden fees · Instant Pro activation key provided'}
                   </p>
                 </div>
               </div>
@@ -304,13 +283,13 @@ export const SubscriptionProModal: React.FC<SubscriptionProModalProps> = ({
                 </div>
               </div>
 
-              {/* Payment Details */}
-              {selectedPlan === 'lkr' ? (
+              {/* Payment Details - Target Sri Lanka vs Global automatically */}
+              {isSriLanka ? (
                 <div className="rounded-xl border border-blue-500/30 bg-blue-950/20 p-3.5 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 text-xs font-bold text-blue-400">
                       <Building className="h-4 w-4" />
-                      <span>ලංකාවේ බැංකු ගිණුමට තැන්පත් කරන්න</span>
+                      <span>{lang === 'si' ? 'ලංකාවේ බැංකු ගිණුමට තැන්පත් කරන්න' : 'Direct Bank Deposit (Sri Lanka)'}</span>
                     </div>
                     <button
                       onClick={handleCopyBank}
@@ -334,7 +313,7 @@ export const SubscriptionProModal: React.FC<SubscriptionProModalProps> = ({
                     className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-4 text-xs font-bold transition-all shadow-md cursor-pointer"
                   >
                     <MessageCircle className="h-4 w-4" />
-                    <span>ගෙවීම් Slip පත යවා Pro Key එක ලබාගන්න</span>
+                    <span>{lang === 'si' ? 'ගෙවීම් Slip පත යවා Pro Key එක ලබාගන්න' : 'Send Slip via WhatsApp to get Pro Key'}</span>
                   </button>
                 </div>
               ) : (

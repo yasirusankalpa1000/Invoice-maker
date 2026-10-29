@@ -45,6 +45,8 @@ interface InvoiceEditorProps {
   onChange: (updated: Partial<InvoiceData>) => void;
   lang: Language;
   onOpenAiModal: () => void;
+  isAdFree?: boolean;
+  onOpenSupportModal?: () => void;
 }
 
 export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({
@@ -52,6 +54,8 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({
   onChange,
   lang,
   onOpenAiModal,
+  isAdFree = false,
+  onOpenSupportModal,
 }) => {
   const [isProductCatalogOpen, setIsProductCatalogOpen] = useState(false);
   const [isClientDirectoryOpen, setIsClientDirectoryOpen] = useState(false);
@@ -1191,6 +1195,8 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({
         onClose={() => setIsProductCatalogOpen(false)}
         lang={lang}
         currencySymbol={data.currencySymbol || '$'}
+        isAdFree={isAdFree}
+        onOpenProModal={onOpenSupportModal}
         onSelectProduct={(prod) => {
           const newItem: InvoiceItem = {
             id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -1209,6 +1215,8 @@ export const InvoiceEditor: React.FC<InvoiceEditorProps> = ({
         isOpen={isClientDirectoryOpen}
         onClose={() => setIsClientDirectoryOpen(false)}
         lang={lang}
+        isAdFree={isAdFree}
+        onOpenProModal={onOpenSupportModal}
         onSelectClient={(client) => {
           onChange({
             clientName: client.name || data.clientName,

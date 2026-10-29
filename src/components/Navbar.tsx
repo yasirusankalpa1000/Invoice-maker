@@ -37,6 +37,11 @@ import {
 import { CURRENCIES } from '../types/invoice';
 import { translations, Language, SUPPORTED_LANGUAGES } from '../utils/i18n';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import {
+  getMonetizationConfig,
+  MonetizationConfig,
+  isUserInSriLanka,
+} from '../utils/monetizationConfig';
 
 interface NavbarProps {
   lang: Language;
@@ -90,6 +95,25 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const langMenuRef = useRef<HTMLDivElement>(null);
+
+  const [monetizationConfig, setMonetizationConfig] = useState<MonetizationConfig>(() =>
+    getMonetizationConfig()
+  );
+
+  useEffect(() => {
+    const handleConfigChange = (e: Event) => {
+      const customEvt = e as CustomEvent<MonetizationConfig>;
+      if (customEvt.detail) {
+        setMonetizationConfig(customEvt.detail);
+      } else {
+        setMonetizationConfig(getMonetizationConfig());
+      }
+    };
+    window.addEventListener('quickinvoice_config_updated', handleConfigChange);
+    return () => window.removeEventListener('quickinvoice_config_updated', handleConfigChange);
+  }, []);
+
+  const isSriLanka = isUserInSriLanka(lang);
 
   // Close desktop language menu on outside click
   useEffect(() => {
@@ -270,6 +294,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               >
                 <TrendingUp className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
                 <span>{lang === 'si' ? 'වාර්තා (Reports)' : 'Reports'}</span>
+                {!isAdFree && (
+                  <span className="rounded bg-amber-400 text-slate-950 text-[9px] font-black px-1 py-0.2">
+                    PRO
+                  </span>
+                )}
               </button>
             )}
 
@@ -282,11 +311,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ? 'border-emerald-500/40 bg-emerald-950/40 text-emerald-400 font-bold'
                     : 'border-amber-500/40 bg-gradient-to-r from-amber-500/15 to-yellow-500/10 text-amber-300 hover:text-white hover:border-amber-400'
                 }`}
-                title={lang === 'si' ? 'Pro සැලැස්ම (රු. 500 / $5)' : 'QuickInvoice Pro Plan'}
+                title={
+                  isSriLanka
+                    ? (lang === 'si' ? `Pro සැලැස්ම (රු. ${monetizationConfig.localPlanPriceLkr})` : `Pro Plan (Rs. ${monetizationConfig.localPlanPriceLkr})`)
+                    : `QuickInvoice Pro Plan ($${monetizationConfig.globalPlanPriceUsd}/mo)`
+                }
               >
                 <Crown className="h-3.5 w-3.5 text-amber-400 shrink-0" />
                 <span className="text-[11px] font-bold">
-                  {isAdFree ? 'Pro Active' : lang === 'si' ? '⭐ Pro (රු. 500)' : '⭐ Pro ($5)'}
+                  {isAdFree
+                    ? (lang === 'si' ? 'Pro සක්‍රියයි' : 'Pro Active')
+                    : isSriLanka
+                    ? (lang === 'si' ? `⭐ Pro (රු. ${monetizationConfig.localPlanPriceLkr})` : `⭐ Pro (Rs. ${monetizationConfig.localPlanPriceLkr})`)
+                    : `⭐ Pro ($${monetizationConfig.globalPlanPriceUsd})`}
                 </span>
               </button>
             )}
@@ -625,8 +662,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                             <Users className="h-4 w-4" />
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-white">
-                              {lang === 'si' ? 'පාරිභෝගික නාමාවලිය (Saved Clients)' : 'Saved Clients Directory'}
+                            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                              <span>{lang === 'si' ? 'පාරිභෝගික නාමාවලිය (Saved Clients)' : 'Saved Clients Directory'}</span>
+                              {!isAdFree && (
+                                <span className="rounded bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5">
+                                  PRO
+                                </span>
+                              )}
                             </div>
                             <p className="text-[10px] text-slate-400">
                               {lang === 'si' ? 'Customers ලැයිස්තුව කළමනාකරණය' : 'Saved customers with phone & address'}
@@ -651,8 +693,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                             <TrendingUp className="h-4 w-4" />
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-white">
-                              {lang === 'si' ? 'ව්‍යාපාරික ආදායම් & ණය වාර්තා' : 'Sales Analytics & Credit Ledger'}
+                            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                              <span>{lang === 'si' ? 'ව්‍යාපාරික ආදායම් & ණය වාර්තා' : 'Sales Analytics & Credit Ledger'}</span>
+                              {!isAdFree && (
+                                <span className="rounded bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5">
+                                  PRO
+                                </span>
+                              )}
                             </div>
                             <p className="text-[10px] text-slate-400">
                               {lang === 'si' ? 'මාසික ලාභ, ලැබීම් සහ ණය පොත' : 'Monthly revenue, net profit & customer dues'}
@@ -677,8 +724,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                             <Package className="h-4 w-4" />
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-white">
-                              {lang === 'si' ? 'භාණ්ඩ තොග ලැයිස්තුව (Product Catalog)' : 'Product & Item Catalog'}
+                            <div className="text-xs font-bold text-white flex items-center gap-1.5">
+                              <span>{lang === 'si' ? 'භාණ්ඩ තොග ලැයිස්තුව (Product Catalog)' : 'Product & Item Catalog'}</span>
+                              {!isAdFree && (
+                                <span className="rounded bg-amber-400 text-slate-950 text-[9px] font-black px-1.5 py-0.5">
+                                  PRO
+                                </span>
+                              )}
                             </div>
                             <p className="text-[10px] text-slate-400">
                               {lang === 'si' ? 'භාණ්ඩ හා ස්ථාවර මිල ගණන්' : 'Pre-saved items & rate cards'}
@@ -855,10 +907,10 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <Crown className="h-4 w-4 text-amber-400" />
                     <span>
                       {isAdFree
-                        ? 'Pro Plan Active (Ad-Free)'
-                        : lang === 'si'
-                        ? '⭐ QuickInvoice Pro (රු. 500 / $5)'
-                        : '⭐ Upgrade to Pro ($5 / mo)'}
+                        ? (lang === 'si' ? 'Pro සැලැස්ම සක්‍රියයි (Ad-Free)' : 'Pro Plan Active (Ad-Free)')
+                        : isSriLanka
+                        ? (lang === 'si' ? `⭐ QuickInvoice Pro (රු. ${monetizationConfig.localPlanPriceLkr})` : `⭐ QuickInvoice Pro (Rs. ${monetizationConfig.localPlanPriceLkr})`)
+                        : `⭐ Upgrade to Pro ($${monetizationConfig.globalPlanPriceUsd} / mo)`}
                     </span>
                   </button>
                 )}

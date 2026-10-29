@@ -21,6 +21,8 @@ import {
   UserCheck,
   Upload,
   Database,
+  Crown,
+  Lock,
 } from 'lucide-react';
 import { InvoiceData, SavedInvoiceRecord } from '../types/invoice';
 import { Language, translations } from '../utils/i18n';
@@ -49,6 +51,8 @@ interface RecentInvoicesSidebarProps {
   activeInvoiceNumber: string;
   lang: Language;
   initialTab?: 'invoices' | 'clients';
+  isAdFree?: boolean;
+  onOpenProModal?: () => void;
 }
 
 export const RecentInvoicesSidebar: React.FC<RecentInvoicesSidebarProps> = ({
@@ -66,6 +70,8 @@ export const RecentInvoicesSidebar: React.FC<RecentInvoicesSidebarProps> = ({
   activeInvoiceNumber,
   lang,
   initialTab = 'invoices',
+  isAdFree = false,
+  onOpenProModal,
 }) => {
   const [activeTab, setActiveTab] = useState<'invoices' | 'clients'>(initialTab);
 
@@ -548,6 +554,32 @@ export const RecentInvoicesSidebar: React.FC<RecentInvoicesSidebarProps> = ({
           {/* TAB 2: CLIENTS DIRECTORY */}
           {activeTab === 'clients' && (
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* Pro Feature Lock & Promo Banner */}
+              {!isAdFree && (
+                <div className="m-3 p-3.5 rounded-2xl border border-amber-500/40 bg-gradient-to-br from-amber-950/50 via-slate-900 to-slate-900 text-center space-y-2 shadow-lg">
+                  <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-500/20">
+                    <Crown className="h-3 w-3" />
+                    <span>{lang === 'si' ? '⭐ Pro විශේෂාංගයකි (Pro Feature)' : '⭐ Pro Member Feature'}</span>
+                  </div>
+                  <h4 className="text-xs font-bold text-white">
+                    {lang === 'si' ? 'පාරිභෝගික නාමාවලිය (Saved Client Directory)' : 'Client Directory & Auto-Fill'}
+                  </h4>
+                  <p className="text-[11px] text-slate-300 leading-relaxed">
+                    {lang === 'si'
+                      ? 'පාරිභෝගිකයන්ගේ නම්, දුරකථන අංක සහ ලිපින ස්ථිරව සුරැකීමට සහ 1-Click එකෙන් ඔවුන්ට බිල්පත් සෑදීමට QuickInvoice Pro සක්‍රිය කරගන්න.'
+                      : 'Save customer profiles, phone numbers & billing addresses for instant 1-click invoice creation. Upgrade to Pro to unlock.'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={onOpenProModal}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 py-2 px-3 text-xs font-black transition-all shadow-md cursor-pointer"
+                  >
+                    <Crown className="h-3.5 w-3.5" />
+                    <span>{lang === 'si' ? '⭐ Pro Plan එක ලබාගන්න (Upgrade to Pro)' : '⭐ Upgrade to Pro Plan'}</span>
+                  </button>
+                </div>
+              )}
+
               {/* Top Search & Add Bar */}
               <div className="p-3 bg-slate-950/60 border-b border-slate-800 space-y-2">
                 <div className="flex items-center gap-2">
@@ -564,7 +596,13 @@ export const RecentInvoicesSidebar: React.FC<RecentInvoicesSidebarProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => setIsAddingClient(!isAddingClient)}
+                    onClick={() => {
+                      if (!isAdFree && onOpenProModal) {
+                        onOpenProModal();
+                        return;
+                      }
+                      setIsAddingClient(!isAddingClient);
+                    }}
                     className="flex items-center gap-1 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shrink-0 shadow-md shadow-blue-600/20"
                   >
                     <Plus className="h-3.5 w-3.5" />

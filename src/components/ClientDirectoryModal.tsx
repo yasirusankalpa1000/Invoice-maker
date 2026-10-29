@@ -10,6 +10,8 @@ import {
   MapPin,
   ArrowRight,
   UserCheck,
+  Crown,
+  Lock,
 } from 'lucide-react';
 import {
   ClientContact,
@@ -24,6 +26,8 @@ interface ClientDirectoryModalProps {
   onClose: () => void;
   onSelectClient: (client: { name: string; phone?: string; email?: string; address?: string }) => void;
   lang: Language;
+  isAdFree?: boolean;
+  onOpenProModal?: () => void;
 }
 
 export const ClientDirectoryModal: React.FC<ClientDirectoryModalProps> = ({
@@ -31,6 +35,8 @@ export const ClientDirectoryModal: React.FC<ClientDirectoryModalProps> = ({
   onClose,
   onSelectClient,
   lang,
+  isAdFree = false,
+  onOpenProModal,
 }) => {
   const [clients, setClients] = useState<ClientContact[]>(() => getClientDirectory());
   const [search, setSearch] = useState('');
@@ -102,7 +108,14 @@ export const ClientDirectoryModal: React.FC<ClientDirectoryModalProps> = ({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsAdding(!isAdding)}
+              onClick={() => {
+                if (!isAdFree && clients.length >= 2 && onOpenProModal) {
+                  onClose();
+                  onOpenProModal();
+                  return;
+                }
+                setIsAdding(!isAdding);
+              }}
               className="flex items-center gap-1.5 rounded-xl bg-blue-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-blue-400 transition-all cursor-pointer"
             >
               <Plus className="h-4 w-4" />
@@ -116,6 +129,29 @@ export const ClientDirectoryModal: React.FC<ClientDirectoryModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Pro Conversion Banner for Free Users */}
+        {!isAdFree && (
+          <div className="bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-emerald-500/20 border-b border-amber-500/30 px-6 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <span className="text-amber-300 font-semibold flex items-center gap-1.5">
+              <Crown className="h-4 w-4 text-amber-400 shrink-0" />
+              <span>
+                {lang === 'si'
+                  ? '⭐ පාරිභෝගික නාමාවලිය සහ Auto-Fill සඳහා Pro සක්‍රිය කරන්න.'
+                  : '⭐ Upgrade to Pro for unlimited customer profiles & instant auto-fill.'}
+              </span>
+            </span>
+            <button
+              onClick={() => {
+                onClose();
+                onOpenProModal?.();
+              }}
+              className="rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-2.5 py-1 text-xs shrink-0 cursor-pointer shadow-md"
+            >
+              <span>{lang === 'si' ? 'Pro ලබාගන්න' : 'Upgrade to Pro'}</span>
+            </button>
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-5 space-y-4">

@@ -56,7 +56,23 @@ export function saveMonetizationConfig(config: MonetizationConfig): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem(MONETIZATION_STORAGE_KEY, JSON.stringify(config));
+    window.dispatchEvent(new CustomEvent('quickinvoice_config_updated', { detail: config }));
   } catch (e) {
     console.error('Failed to save monetization config:', e);
+  }
+}
+
+/**
+ * Check if current user is located in Sri Lanka (or chose Sinhala language)
+ * Uses timezone, UTC offset (-330 = +05:30), and language.
+ */
+export function isUserInSriLanka(lang?: string): boolean {
+  if (typeof window === 'undefined') return lang === 'si';
+  try {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || '';
+    const offset = new Date().getTimezoneOffset(); // -330 for Sri Lanka / India (+5:30)
+    return tz.includes('Colombo') || tz.includes('Sri_Lanka') || offset === -330 || lang === 'si';
+  } catch {
+    return lang === 'si';
   }
 }

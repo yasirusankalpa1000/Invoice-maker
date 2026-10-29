@@ -22,6 +22,11 @@ import {
 import { Language, translations, SUPPORTED_LANGUAGES } from './utils/i18n';
 import { downloadInvoicePdf } from './utils/pdfExport';
 import {
+  getMonetizationConfig,
+  MonetizationConfig,
+  isUserInSriLanka,
+} from './utils/monetizationConfig';
+import {
   getRecentInvoices,
   saveRecentInvoice,
   deleteRecentInvoice,
@@ -99,6 +104,25 @@ export default function App() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadSuccessToast, setDownloadSuccessToast] = useState(false);
   const [toastMessage, setToastMessage] = useState<string>('');
+
+  const [monetizationConfig, setMonetizationConfig] = useState<MonetizationConfig>(() =>
+    getMonetizationConfig()
+  );
+
+  useEffect(() => {
+    const handleConfigChange = (e: Event) => {
+      const customEvt = e as CustomEvent<MonetizationConfig>;
+      if (customEvt.detail) {
+        setMonetizationConfig(customEvt.detail);
+      } else {
+        setMonetizationConfig(getMonetizationConfig());
+      }
+    };
+    window.addEventListener('quickinvoice_config_updated', handleConfigChange);
+    return () => window.removeEventListener('quickinvoice_config_updated', handleConfigChange);
+  }, []);
+
+  const isSriLanka = isUserInSriLanka(lang);
 
   const t = translations[lang];
 
@@ -526,6 +550,8 @@ export default function App() {
               onChange={handleDataChange}
               lang={lang}
               onOpenAiModal={() => setIsAiModalOpen(true)}
+              isAdFree={isAdFree}
+              onOpenSupportModal={() => setIsSupportModalOpen(true)}
             />
           </div>
 
@@ -595,7 +621,11 @@ export default function App() {
             </span>
             <span>·</span>
             <span className="hover:text-emerald-400 cursor-pointer font-semibold text-emerald-400/90" onClick={() => setIsSupportModalOpen(true)}>
-              {lang === 'si' ? '⭐ Pro Subscription (රු. 500 / $5)' : '⭐ Pro Upgrade ($5 / mo)'}
+              {isAdFree
+                ? (lang === 'si' ? '⭐ Pro සක්‍රියයි' : '⭐ Pro Active')
+                : isSriLanka
+                ? (lang === 'si' ? `⭐ Pro Plan (රු. ${monetizationConfig.localPlanPriceLkr} / මසකට)` : `⭐ Pro Plan (Rs. ${monetizationConfig.localPlanPriceLkr} / mo)`)
+                : `⭐ Pro Upgrade ($${monetizationConfig.globalPlanPriceUsd} / mo)`}
             </span>
             <span>·</span>
             <span className="hover:text-white cursor-pointer" onClick={handleResetSample}>
@@ -636,8 +666,8 @@ export default function App() {
         isOpen={isOwnerSettingsModalOpen}
         onClose={() => setIsOwnerSettingsModalOpen(false)}
         lang={lang}
-        onConfigUpdated={() => {
-          // Re-trigger re-render if needed
+        onConfigUpdated={(updatedCfg) => {
+          setMonetizationConfig(updatedCfg);
         }}
       />
 
@@ -656,6 +686,8 @@ export default function App() {
         onClose={() => setIsReportsModalOpen(false)}
         invoices={recentInvoices}
         lang={lang}
+        isAdFree={isAdFree}
+        onOpenProModal={() => setIsSupportModalOpen(true)}
       />
 
       {/* Recent Invoices Sidebar (Stores saved invoices in localStorage + CSV export) */}
@@ -671,6 +703,8 @@ export default function App() {
         onSaveCurrentInvoice={() => handleSaveCurrentToRecent(false)}
         onCreateNewInvoice={handleCreateNewInvoice}
         initialTab={recentSidebarTab}
+        isAdFree={isAdFree}
+        onOpenProModal={() => setIsSupportModalOpen(true)}
         onSelectClient={(client) => {
           handleDataChange({
             clientName: client.name || invoiceData.clientName,
@@ -689,6 +723,8 @@ export default function App() {
         onClose={() => setIsGlobalProductCatalogOpen(false)}
         lang={lang}
         currencySymbol={invoiceData.currencySymbol || '$'}
+        isAdFree={isAdFree}
+        onOpenProModal={() => setIsSupportModalOpen(true)}
         onSelectProduct={(prod) => {
           const newItem: InvoiceItem = {
             id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,

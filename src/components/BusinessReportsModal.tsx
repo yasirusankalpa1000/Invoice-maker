@@ -21,6 +21,8 @@ import {
   ShoppingBag,
   Database,
   Upload,
+  Crown,
+  Lock,
 } from 'lucide-react';
 import { SavedInvoiceRecord } from '../types/invoice';
 import { exportInvoicesToCsv } from '../utils/csvExport';
@@ -42,6 +44,8 @@ interface BusinessReportsModalProps {
   onClose: () => void;
   invoices: SavedInvoiceRecord[];
   lang: Language;
+  isAdFree?: boolean;
+  onOpenProModal?: () => void;
 }
 
 export const BusinessReportsModal: React.FC<BusinessReportsModalProps> = ({
@@ -49,6 +53,8 @@ export const BusinessReportsModal: React.FC<BusinessReportsModalProps> = ({
   onClose,
   invoices,
   lang,
+  isAdFree = false,
+  onOpenProModal,
 }) => {
   const [activeTab, setActiveTab] = useState<'sales' | 'credit' | 'expenses' | 'backup'>('sales');
   const [dateFilter, setDateFilter] = useState<'all' | 'this_month' | 'last_30_days' | 'custom'>('all');
@@ -265,11 +271,19 @@ export const BusinessReportsModal: React.FC<BusinessReportsModalProps> = ({
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => exportInvoicesToCsv(filteredInvoices)}
+              onClick={() => {
+                if (!isAdFree && onOpenProModal) {
+                  onClose();
+                  onOpenProModal();
+                  return;
+                }
+                exportInvoicesToCsv(filteredInvoices);
+              }}
               className="hidden sm:flex items-center gap-1.5 rounded-xl bg-emerald-500 px-3 py-1.5 text-xs font-bold text-slate-950 hover:bg-emerald-400 transition-all cursor-pointer"
             >
               <FileSpreadsheet className="h-4 w-4" />
               <span>{lang === 'si' ? 'Excel බාගන්න' : 'Export Excel'}</span>
+              {!isAdFree && <span className="bg-amber-400 text-slate-950 text-[9px] font-black px-1 rounded">PRO</span>}
             </button>
             <button
               onClick={onClose}
@@ -279,6 +293,30 @@ export const BusinessReportsModal: React.FC<BusinessReportsModalProps> = ({
             </button>
           </div>
         </div>
+
+        {/* Pro Conversion Banner for Free Users */}
+        {!isAdFree && (
+          <div className="bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-emerald-500/20 border-b border-amber-500/30 px-5 py-2.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 text-amber-300 font-semibold">
+              <Crown className="h-4 w-4 shrink-0 text-amber-400" />
+              <span>
+                {lang === 'si'
+                  ? '⭐ සම්පූර්ණ ව්‍යාපාරික වාර්තා, ණය පොත & Excel Export පහසුකම ලබාගැනීමට Pro සක්‍රිය කරගන්න.'
+                  : '⭐ Upgrade to Pro for complete business analytics, unlimited debt ledger & Excel export.'}
+              </span>
+            </div>
+            <button
+              onClick={() => {
+                onClose();
+                onOpenProModal?.();
+              }}
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black px-3 py-1 text-xs shrink-0 cursor-pointer shadow-md"
+            >
+              <Crown className="h-3.5 w-3.5" />
+              <span>{lang === 'si' ? 'Pro ලබාගන්න (Upgrade)' : 'Upgrade to Pro'}</span>
+            </button>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="flex border-b border-slate-800 bg-slate-950/40 px-5 gap-2 overflow-x-auto py-2">
